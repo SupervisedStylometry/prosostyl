@@ -11,9 +11,9 @@ def syllabify(word):
     word = re.sub(r'([tbgdpkfvc])([rl])', r'\1_\2', word)  # Temporarily replace "tr" or "pl" with "t_r", "p_l", etc.
     # Step 1b: preserve diphtongs
     word = re.sub(r'([aeou])(i)', r'\1_\2', word)  # Temporarily replace "oi" with "o_i"
-    word = re.sub(r'(e)(u)', r'\1_\2', word)
-    word = re.sub(r'(u)(e)', r'\1_\2', word)
-    word = re.sub(r'(i)([eé])', r'\1_\2', word)  # Temporarily replace "oi" with "o_i"
+    word = re.sub(r'([eo])(u)', r'\1_\2', word)
+    word = re.sub(r'([u])(e)', r'\1_\2', word)
+    word = re.sub(r'(i)([eéau])', r'\1_\2', word)  # Temporarily replace "oi" with "o_i"
 
     # My regex:
     # first, split between consonnants
@@ -34,7 +34,7 @@ def syllabify(word):
     return [s for s in syllables if s]
 
 # Examples to test the function
-words = ["battre", "mangier", "vëoir", "voit", "plaisir", "avoir", "dame", "chevalier", "mangees"]
+words = ["battre", "mangier", "vëoir", "voit", "plaisir", "avoir", "dame", "chevalier", "mangees", "Champaigne", "cherchier", "vialt", "outree"]
 
 for word in words:
     print(f"{word} -> {syllabify(word)}")
@@ -51,7 +51,7 @@ def get_stress(word, next_word=None):
         stress = ["w"] * (len(syllables) - 1) + ["S"]
     else:  # Final syllable stressed
         stress = ["w"] * (len(syllables) - 1) + ["S"]
-    return ".".join(stress)
+    return "".join(stress)
 
 # Function to process a line of verse
 def process_line(verse_num, line):
