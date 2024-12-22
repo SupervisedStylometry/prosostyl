@@ -9,6 +9,9 @@ all = "[bcdfghjklpqrstvwxzmnaeiouyâêîôûàèùéëïü]"
 def syllabify(word):
     # Step 1: Mark consonant clusters (tr, pl, etc.) to prevent splitting
     word = re.sub(r'([tbgdpkfvc])([rl])', r'\1_\2', word)  # Temporarily replace "tr" or "pl" with "t_r", "p_l", etc.
+    word = re.sub(r'(g)(n)', r'\1_\2', word)  # Temporarily replace "gn" "g_n"
+    # mark qu sequence
+    word = re.sub(r'(q)(u)', r'\1_\2_', word)  # Temporarily replace "gn" "g_n"
     # Step 1b: preserve diphtongs
     word = re.sub(r'([aeou])(i)', r'\1_\2', word)  # Temporarily replace "oi" with "o_i"
     word = re.sub(r'([eo])(u)', r'\1_\2', word)
@@ -19,7 +22,7 @@ def syllabify(word):
     # first, split between consonnants
     word = re.sub("("+vowel+consonant+")"+"("+consonant+")", r'\1-\2', word)
     # then, split between vowel and vowel/consonnant that are not final
-    word = re.sub("(" + vowel + ")" + "(" + consonant + ")(?=[^\-_])", r'\1-\2', word)
+    word = re.sub("(" + vowel + ")" + "(" + consonant + ")(?=[^\-])", r'\1-\2', word)
     # then, split between vowels
     word = re.sub("(" + vowel + ")" + "(" + vowel + ")", r'\1-\2', word)
 
@@ -29,12 +32,13 @@ def syllabify(word):
     # Final step, handle mute e
     word = re.sub(r'([ée])([e])', r'\1-\2', word)
 
-    # Cleanup: Ensure there are no empty syllables
+    # Cleanup: Ensure there are no final syllables without vowels or empty syllables
+    word = re.sub(r"\-("+consonant+"+)$", r'\1', word)
     syllables = word.split('-')
     return [s for s in syllables if s]
 
 # Examples to test the function
-words = ["battre", "mangier", "vëoir", "voit", "plaisir", "avoir", "dame", "chevalier", "mangees", "Champaigne", "cherchier", "vialt", "outree"]
+words = ["quanque", "battre", "batre", "mangier", "vëoir", "voit", "plaisir", "avoir", "dame", "chevalier", "mangees", "Champaigne", "cherchier", "vialt", "outree"]
 
 for word in words:
     print(f"{word} -> {syllabify(word)}")
@@ -61,7 +65,17 @@ def process_line(verse_num, line):
         next_word = words[i + 1] if i + 1 < len(words) else None
         stress = get_stress(word, next_word)
         result.append(stress)
-    return f"{verse_num} " + ".".join(result)
+    return f"{line} " + ";".join(result)
+
+# Test function for syllabification
+
+def syllabify_line(verse_num, line):
+    words = line.split()
+    result = []
+    for i, word in enumerate(words):
+        result.append("-".join(syllabify(word)))
+    return ".".join(result)
+
 
 # Input lines (example)
 lines = [
@@ -76,6 +90,10 @@ lines = [
     "Si deïst, et jel tesmoignasse",
     "Que ce est la dame qui passe"
 ]
+
+# Process each line
+for i, line in enumerate(lines, 1):
+    print(syllabify_line(i, line))
 
 # Process each line
 for i, line in enumerate(lines, 1):
