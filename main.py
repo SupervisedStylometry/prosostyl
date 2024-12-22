@@ -50,12 +50,15 @@ def get_stress(word, next_word=None):
     syllables = syllabify(word)
     if len(syllables) == 1:  # Monosyllabic word
         return "S" if word not in ["que", "de", "le", "la", "et", "si"] else "w"
-    if word.endswith("e") and next_word and re.match(r"^[aeiouy]", next_word):  # Mute 'e' elided
-        stress = ["S"] + ["e"] * (len(syllables) - 1)
-    elif word.endswith("e"):  # Mute 'e', stress on penultimate
-        stress = ["w"] * (len(syllables) - 1) + ["S"]
-    else:  # Final syllable stressed
-        stress = ["w"] * (len(syllables) - 1) + ["S"]
+    else:
+        # first, set all syllables as weak
+        stress = ["w" for s in syllables]
+        if syllables[-1].endswith("e"):
+            stress[-2] = 'S'
+            if next_word is None or re.match(r"^"+vowel, next_word):
+                stress[-1] = "e"
+        else:
+            stress[-1] = "S"
     return "".join(stress)
 
 # Function to process a line of verse
@@ -66,7 +69,7 @@ def process_line(verse_num, line):
     result = []
     for i, word in enumerate(words):
         next_word = words[i + 1] if i + 1 < len(words) else None
-        stress = get_stress(word, next_word)
+        stress = get_stress(word, next_word=next_word)
         result.append(stress)
     return f"{line} " + ";".join(result)
 
