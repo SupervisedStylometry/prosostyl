@@ -38,7 +38,8 @@ def syllabify(word):
     return [s for s in syllables if s]
 
 # Examples to test the function
-words = ["quanque", "battre", "batre", "mangier", "vëoir", "voit", "plaisir", "avoir", "dame", "chevalier", "mangees", "Champaigne", "cherchier", "vialt", "outree"]
+words = ["battre", "batre", "mangier", "vëoir", "voit", "plaisir", "avoir", "dame", "chevalier",
+         "mangees", "Champaigne", "cherchier", "vialt", "outree", "deïst", "quanque"]
 
 for word in words:
     print(f"{word} -> {syllabify(word)}")
@@ -59,6 +60,8 @@ def get_stress(word, next_word=None):
 
 # Function to process a line of verse
 def process_line(verse_num, line):
+    # remove punctuation
+    line = re.sub(r"\p{P}", "", line)
     words = line.split()
     result = []
     for i, word in enumerate(words):
@@ -70,6 +73,8 @@ def process_line(verse_num, line):
 # Test function for syllabification
 
 def syllabify_line(verse_num, line):
+    #remove punctuation
+    line = re.sub(r"\p{P}", "", line)
     words = line.split()
     result = []
     for i, word in enumerate(words):
