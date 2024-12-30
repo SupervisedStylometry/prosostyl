@@ -143,7 +143,7 @@ for i, line in enumerate(lines, 1):
 
 if __name__ == "__main__":
 
-    gt = pandas.read_csv("gt_fro.tsv", sep="\t")
+    gt = pandas.read_csv("gt_fro_with_preds.tsv", sep="\t")
 
     lines = list(gt.Verse)
 
@@ -158,16 +158,19 @@ if __name__ == "__main__":
 
     pandas.DataFrame(evals).describe()
 
-    # print lines with errors
-    for index, row in gt.iterrows():
-        if evals[index] < 0.9:
-            print(str(index) + row["Verse"] + " --" + row["Annotation"] + " --" + preds[index] + " -- Score: " + str(evals[index]))
-
     # print lines where syllable counts differ
     for index, row in gt.iterrows():
         if evals[index] < 1:
             if len(row["Annotation"]) != len(preds[index]):
-                print(str(index) + row["Verse"] + " --" + row["Annotation"] + " --" + preds[index] + " -- Score: " + str(evals[index]))
+                print(
+                    str(index) + row["Verse"] + " --" + row["Annotation"] + " --" + preds[index] + " -- Score: " + str(
+                        evals[index]))
+
+    # print lines with errors but same syllable count
+    for index, row in gt.iterrows():
+        if evals[index] < 1 and len(row["Annotation"]) == len(preds[index]):
+            print(str(index) + row["Verse"] + " --" + row["Annotation"] + " --" + preds[index] + " -- Score: " + str(evals[index]))
+
 
     # Compare with other tools
     alternate = pandas.read_csv("gt_fro_with_preds.tsv", sep="\t")
