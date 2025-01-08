@@ -58,14 +58,14 @@ def syllabify(word):
     return [s for s in syllables if s]
 
 # Examples to test the function
-words = ["bielement", "maniere", "piece", "pieche", "iriez", "grieve", "liez", "mariage", "chastiaus", "poez", "demenoient", "boene",
-         "tierre",  "saluent", "mie", "escrie", "amie", "aie",
-         "peçoie", "salue", "battre", "batre", "mangier", "vëoir", "voit", "plaisir",
-         "avoir", "dame", "chevalier",
-         "mangees", "Champaigne", "cherchier", "vialt", "outree", "deïst", "quanque"]
-
-for word in words:
-    print(f"{word} -> {syllabify(word)}")
+# words = ["bielement", "maniere", "piece", "pieche", "iriez", "grieve", "liez", "mariage", "chastiaus", "poez", "demenoient", "boene",
+#          "tierre",  "saluent", "mie", "escrie", "amie", "aie",
+#          "peçoie", "salue", "battre", "batre", "mangier", "vëoir", "voit", "plaisir",
+#          "avoir", "dame", "chevalier",
+#          "mangees", "Champaigne", "cherchier", "vialt", "outree", "deïst", "quanque"]
+#
+# for word in words:
+#     print(f"{word} -> {syllabify(word)}")
 
 
 # Function to determine stress pattern for a word
@@ -94,7 +94,7 @@ def get_stress(word, next_word=None):
         return "".join(stress)
 
 # Function to process a line of verse
-def process_line(verse_num, line):
+def process_line(line):
     # remove punctuation
     line = re.sub(r"\p{P}", "", line).lower()
     words = line.split()
@@ -108,7 +108,7 @@ def process_line(verse_num, line):
 
 # Test function for syllabification
 
-def syllabify_line(verse_num, line):
+def syllabify_line(line):
     #remove punctuation
     line = re.sub(r"\p{P}", "", line).lower()
     words = line.split()
@@ -117,67 +117,112 @@ def syllabify_line(verse_num, line):
         result.append("-".join(syllabify(word)))
     return ".".join(result)
 
-
-# Input lines (example)
-lines = [
-    "Puis que ma dame de Chanpaigne",
-    "Vialt que romans a feire anpraigne",
-    "Je l'anprendrai mout volentiers",
-    "Come cil qui est suens antiers",
-    "De quanqu'il puet el monde feire",
-    "Sanz rien de losange avant treire",
-    "Mes tex s'an poïst antremetre",
-    "Qui li volsist losenge metre",
-    "Si deïst, et jel tesmoignasse",
-    "Que ce est la dame qui passe"
-]
-
-# Process each line
-for i, line in enumerate(lines, 1):
-    print(syllabify_line(i, line))
-
-# Process each line
-for i, line in enumerate(lines, 1):
-    print(process_line(i, line))
+#
+# # Input lines (example)
+# lines = [
+#     "Puis que ma dame de Chanpaigne",
+#     "Vialt que romans a feire anpraigne",
+#     "Je l'anprendrai mout volentiers",
+#     "Come cil qui est suens antiers",
+#     "De quanqu'il puet el monde feire",
+#     "Sanz rien de losange avant treire",
+#     "Mes tex s'an poïst antremetre",
+#     "Qui li volsist losenge metre",
+#     "Si deïst, et jel tesmoignasse",
+#     "Que ce est la dame qui passe"
+# ]
+#
+# # Process each line
+# for line in lines:
+#     print(syllabify_line(line))
+#
+# # Process each line
+# for line in lines:
+#     print(process_line(line))
 
 
 if __name__ == "__main__":
 
-    gt = pandas.read_csv("gt_fro_with_preds.tsv", sep="\t")
+    import argparse
 
-    lines = list(gt.Verse)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--eval_path', action='store', help="Path to evaluation file", type=str, default='')
+    parser.add_argument('--detailed_eval', action='store_true', help="Detailed evaluation results")
+    parser.add_argument('--compare', action='store_true', help="Compare with alternative annotators")
+    parser.add_argument('--unseen_paths', action='store', help="Paths to unseen files for prediction",
+                        nargs='+',default='')
+    args = parser.parse_args()
 
-    preds = []
+    if args.eval_path != '':
+        gt = pandas.read_csv(args.eval_path, sep="\t")
 
-    for i, line in enumerate(lines, 1):
-        preds.append(process_line(i, line))
+        print(".... Evaluating on: " + args.eval_path + ' ....')
+
+        lines = list(gt.Verse)
+        preds = []
+        for line in lines:
+            preds.append(process_line(line))
+
+        print(".... Evaluation scores ....")
+        # EVAL scores
+        evals = [ratio(row["Annotation"], preds[index]) for index, row in gt.iterrows()]
+
+        print(pandas.DataFrame(evals).describe())
+
+        if args.detailed_eval:
+            # print lines where syllable counts differ
+            print("... Printing lines where syllable count differ ...")
+            for index, row in gt.iterrows():
+                if evals[index] < 1:
+                    if len(row["Annotation"]) != len(preds[index]):
+                        print(
+                            str(index) + row["Verse"] + " --" + row["Annotation"] + " --" + preds[index] + " -- Score: " + str(
+                                evals[index]))
+
+            print("... Printing lines with accentuation errors ...")
+            # print lines with errors but same syllable count
+            for index, row in gt.iterrows():
+                if evals[index] < 1 and len(row["Annotation"]) == len(preds[index]):
+                    print(str(index) + row["Verse"] + " --" + row["Annotation"] + " --" + preds[index] + " -- Score: " + str(evals[index]))
+
+        if args.compare:
+            print("... Comparing with other tools ...")
+            cols = [col for col in gt.columns if col not in ["File", "LineNo", "Verse", "Annotation"]]
+
+            for col in cols:
+                print("... Comparing with " + col + "...")
+                evals = [ratio(row["Annotation"], row[col]) for index, row in gt.iterrows()]
+                print(pandas.DataFrame(evals).describe())
+
+                if args.detailed_eval:
+                    # print lines where syllable counts differ
+                    print("... Printing lines where syllable count differ ...")
+                    for index, row in gt.iterrows():
+                        if evals[index] < 1:
+                            if len(row["Annotation"]) != len(row[col]):
+                                print(
+                                    str(index) + row["Verse"] + " --" + row["Annotation"] + " --" + row[col] + " -- Score: " + str(
+                                        evals[index]))
+
+                    print("... Printing lines with accentuation errors ...")
+                    # print lines with errors but same syllable count
+                    for index, row in gt.iterrows():
+                        if evals[index] < 1 and len(row["Annotation"]) == len(row[col]):
+                            print(str(index) + row["Verse"] + " --" + row["Annotation"] + " --" + row[col] + " -- Score: " + str(evals[index]))
+
+    if args.unseen_paths != '':
+        for path in args.unseen_paths:
+        ### Annotate unseen sample
+            with open(path, 'r') as f:
+                lines = f.readlines()
+                lines = [line.rstrip() for line in lines if line != '']
+
+            with open(path.split("/")[-1].split(".")[0]+'_pros.txt', 'w') as out:
+                for line in lines:
+                    out.write(process_line(line) + '|\n')
 
 
-    # EVAL scores
-    evals = [ratio(row["Annotation"], preds[index]) for index, row in gt.iterrows()]
-
-    pandas.DataFrame(evals).describe()
-
-    # print lines where syllable counts differ
-    for index, row in gt.iterrows():
-        if evals[index] < 1:
-            if len(row["Annotation"]) != len(preds[index]):
-                print(
-                    str(index) + row["Verse"] + " --" + row["Annotation"] + " --" + preds[index] + " -- Score: " + str(
-                        evals[index]))
-
-    # print lines with errors but same syllable count
-    for index, row in gt.iterrows():
-        if evals[index] < 1 and len(row["Annotation"]) == len(preds[index]):
-            print(str(index) + row["Verse"] + " --" + row["Annotation"] + " --" + preds[index] + " -- Score: " + str(evals[index]))
 
 
-    # Compare with other tools
-    alternate = pandas.read_csv("gt_fro_with_preds.tsv", sep="\t")
-    evals = [ratio(row["Annotation"], row["mistral-large-2"]) for index, row in alternate.iterrows()]
 
-    pandas.DataFrame(evals).describe()
-
-
-    #ratio(list(gt.Annotation), preds)
 
